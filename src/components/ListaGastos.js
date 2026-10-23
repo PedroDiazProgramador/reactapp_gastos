@@ -1,7 +1,12 @@
+
 import { ScrollView, Text, StyleSheet } from 'react-native';
 import TarjetaGasto from './TarjetaGasto';
 
-export default function ListaGastos({ gastos }) {
+export default function ListaGastos({
+  gastos,
+  onEliminarGasto,
+  onEditarGasto,
+}) {
   if (gastos.length === 0) {
     return (
       <Text style={styles.vacio}>
@@ -16,6 +21,8 @@ export default function ListaGastos({ gastos }) {
         <TarjetaGasto
           key={gasto.id}
           gasto={gasto}
+          onEliminar={() => onEliminarGasto(gasto.id)}
+          onEditar={() => onEditarGasto(gasto)}
         />
       ))}
     </ScrollView>

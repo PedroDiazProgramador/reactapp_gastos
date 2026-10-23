@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 
 import {
@@ -6,11 +7,14 @@ import {
   StyleSheet,
   ActivityIndicator,
   Alert,
+  Pressable,
 } from 'react-native';
 
 import {
   cargarGastos,
   agregarGasto,
+  eliminarGasto,
+  editarGasto,
 } from '../controllers/GastosController';
 
 import FormularioGasto from '../components/FormularioGasto';
@@ -23,8 +27,12 @@ export default function GastosScreen() {
   const [monto, setMonto] = useState('');
   const [categoria, setCategoria] = useState('');
 
+  const [gastoEnEdicion, setGastoEnEdicion] = useState(null);
+
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
+
+  const modoEdicion = gastoEnEdicion !== null;
 
   useEffect(() => {
     async function iniciar() {
@@ -44,6 +52,13 @@ export default function GastosScreen() {
     iniciar();
   }, []);
 
+  const limpiarFormulario = () => {
+    setDescripcion('');
+    setMonto('');
+    setCategoria('');
+    setGastoEnEdicion(null);
+  };
+
   const manejarAgregar = async () => {
     if (guardando || cargando) {
       return;
@@ -60,10 +75,7 @@ export default function GastosScreen() {
       );
 
       setGastos(nuevosGastos);
-
-      setDescripcion('');
-      setMonto('');
-      setCategoria('');
+      limpiarFormulario();
     } catch (error) {
       Alert.alert(
         'No se pudo agregar el gasto',
@@ -72,6 +84,89 @@ export default function GastosScreen() {
     } finally {
       setGuardando(false);
     }
+  };
+
+  const manejarEditar = (gasto) => {
+    setGastoEnEdicion(gasto.id);
+    setDescripcion(gasto.descripcion);
+    setMonto(String(gasto.monto));
+    setCategoria(gasto.categoria);
+  };
+
+  const manejarGuardarEdicion = async () => {
+    if (guardando || cargando || gastoEnEdicion === null) {
+      return;
+    }
+
+    try {
+      setGuardando(true);
+
+      const nuevosGastos = await editarGasto(
+        gastos,
+        gastoEnEdicion,
+        descripcion,
+        monto,
+        categoria
+      );
+
+      setGastos(nuevosGastos);
+      limpiarFormulario();
+    } catch (error) {
+      Alert.alert(
+        'No se pudieron guardar los cambios',
+        error.message || 'Ocurrió un error inesperado.'
+      );
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  const manejarEliminar = (id) => {
+    if (guardando || cargando) {
+      return;
+    }
+
+    Alert.alert(
+      'Eliminar gasto',
+      '¿Estás seguro de que querés eliminar este gasto?',
+      [
+        {
+          text: 'Cancelar',
+          style: 'cancel',
+        },
+        {
+          text: 'Eliminar',
+          style: 'destructive',
+          onPress: async () => {
+            if (guardando) {
+              return;
+            }
+
+            try {
+              setGuardando(true);
+
+              const nuevosGastos = await eliminarGasto(
+                gastos,
+                id
+              );
+
+              setGastos(nuevosGastos);
+
+              if (gastoEnEdicion === id) {
+                limpiarFormulario();
+              }
+            } catch (error) {
+              Alert.alert(
+                'Error',
+                'No se pudo eliminar el gasto.'
+              );
+            } finally {
+              setGuardando(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   if (cargando) {
@@ -101,10 +196,28 @@ export default function GastosScreen() {
         categoria={categoria}
         setCategoria={setCategoria}
         onAgregar={manejarAgregar}
+        onEditar={manejarGuardarEdicion}
+        modoEdicion={modoEdicion}
         deshabilitado={guardando}
       />
 
-      <ListaGastos gastos={gastos} />
+      {modoEdicion && (
+        <Pressable
+          style={styles.botonCancelar}
+          onPress={limpiarFormulario}
+          disabled={guardando}
+        >
+          <Text style={styles.textoCancelar}>
+            Cancelar edición
+          </Text>
+        </Pressable>
+      )}
+
+      <ListaGastos
+        gastos={gastos}
+        onEliminarGasto={manejarEliminar}
+        onEditarGasto={manejarEditar}
+      />
     </View>
   );
 }
@@ -136,5 +249,14 @@ const styles = StyleSheet.create({
   textoCargando: {
     marginTop: 12,
     color: '#777777',
+  },
+  botonCancelar: {
+    alignItems: 'center',
+    padding: 10,
+    marginBottom: 10,
+  },
+  textoCancelar: {
+    color: '#777777',
+    fontWeight: '600',
   },
 });

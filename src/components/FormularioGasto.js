@@ -1,3 +1,4 @@
+
 import {
   View,
   Text,
@@ -14,6 +15,8 @@ export default function FormularioGasto({
   categoria,
   setCategoria,
   onAgregar,
+  onEditar,
+  modoEdicion,
   deshabilitado,
 }) {
   return (
@@ -45,13 +48,19 @@ export default function FormularioGasto({
           styles.boton,
           deshabilitado && styles.botonDeshabilitado,
         ]}
-        onPress={onAgregar}
+        onPress={modoEdicion ? onEditar : onAgregar}
         disabled={deshabilitado}
       >
         <Text style={styles.textoBoton}>
-          Agregar gasto
+          {modoEdicion ? 'Guardar cambios' : 'Agregar gasto'}
         </Text>
       </Pressable>
+
+      {modoEdicion && (
+        <Text style={styles.textoEdicion}>
+          Estás editando un gasto existente.
+        </Text>
+      )}
     </View>
   );
 }
@@ -84,5 +93,11 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  textoEdicion: {
+    color: '#777777',
+    fontSize: 13,
+    textAlign: 'center',
+    marginTop: 10,
   },
 });
