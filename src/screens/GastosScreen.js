@@ -1,5 +1,7 @@
 
 import { useState, useEffect } from 'react';
+import { Picker } from '@react-native-picker/picker';
+import { CATEGORIAS } from '../constants/categorias';
 
 import {
   View,
@@ -22,17 +24,45 @@ import ListaGastos from '../components/ListaGastos';
 
 export default function GastosScreen() {
   const [gastos, setGastos] = useState([]);
+  //para filtrar
+  const [categoriaFiltro, setCategoriaFiltro] = useState('');
 
   const [descripcion, setDescripcion] = useState('');
   const [monto, setMonto] = useState('');
   const [categoria, setCategoria] = useState('');
 
   const [gastoEnEdicion, setGastoEnEdicion] = useState(null);
+  const [mostrarFormulario, setMostrarFormulario] = useState(false);
 
   const [cargando, setCargando] = useState(true);
   const [guardando, setGuardando] = useState(false);
 
   const modoEdicion = gastoEnEdicion !== null;
+
+  
+  //filtrar gastos según la categoría seleccionada
+  const gastosFiltrados = gastos.filter((gasto) => {
+    return (
+      categoriaFiltro === '' ||
+      gasto.categoria === categoriaFiltro
+    );
+  });
+
+  //calcular total de los gastos filtrados
+  //para total de gastos, recorre los gastos y va sumando
+  const totalGastado = gastosFiltrados.reduce(
+    (total, gasto) => total + Number(gasto.monto || 0),
+    0
+  );
+
+  //para la cantidad de gastos, cuenta lo filtyrado
+  const cantidadGastos = gastosFiltrados.length;
+
+  //formato del total
+  const totalFormateado = totalGastado.toLocaleString('es-AR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
 
   useEffect(() => {
     async function iniciar() {
@@ -57,7 +87,18 @@ export default function GastosScreen() {
     setMonto('');
     setCategoria('');
     setGastoEnEdicion(null);
+    setMostrarFormulario(false);
   };
+
+  //Abrir un nuevo formulario para nevio gasto
+  const abrirFormulario = () => {
+    setDescripcion('');
+    setMonto('');
+    setCategoria('');
+    setGastoEnEdicion(null);
+    setMostrarFormulario(true);
+  };
+  //fin Abrir un nuevo formulario para nevio gasto
 
   const manejarAgregar = async () => {
     if (guardando || cargando) {
@@ -91,6 +132,9 @@ export default function GastosScreen() {
     setDescripcion(gasto.descripcion);
     setMonto(String(gasto.monto));
     setCategoria(gasto.categoria);
+
+    //abrir formulario para editar
+    setMostrarFormulario(true);
   };
 
   const manejarGuardarEdicion = async () => {
@@ -181,45 +225,122 @@ export default function GastosScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.titulo}>Mis gastos</Text>
+  <View style={styles.container}>
 
-      <Text style={styles.subtitulo}>
-        Registro de gastos personales
-      </Text>
+    {!mostrarFormulario ? (
+      <>
+        {/* PANTALLA PRINCIPAL */}
 
-      <FormularioGasto
-        descripcion={descripcion}
-        setDescripcion={setDescripcion}
-        monto={monto}
-        setMonto={setMonto}
-        categoria={categoria}
-        setCategoria={setCategoria}
-        onAgregar={manejarAgregar}
-        onEditar={manejarGuardarEdicion}
-        modoEdicion={modoEdicion}
-        deshabilitado={guardando}
-      />
+        <Text style={styles.titulo}>
+          Mis gastos
+        </Text>
 
-      {modoEdicion && (
+        <Text style={styles.subtitulo}>
+          Registro de gastos personales
+        </Text>
+
+        <Pressable
+          style={styles.botonAgregar}
+          onPress={abrirFormulario}
+          disabled={guardando}
+        >
+          <Text style={styles.textoBotonAgregar}>
+            + Agregar gasto
+          </Text>
+        </Pressable>
+        <View style={styles.contenedorFiltro}>
+          <Text style={styles.etiquetaFiltro}>
+            Filtrar por categoría
+          </Text>
+
+          <View style={styles.selectorFiltro}>
+            <Picker
+              selectedValue={categoriaFiltro}
+              onValueChange={(valor) => setCategoriaFiltro(valor)}
+            >
+              <Picker.Item
+                label="Todas las categorías"
+                value=""
+              />
+
+              {CATEGORIAS.map((item) => (
+                <Picker.Item
+                  key={item.id}
+                  label={item.nombre}
+                  value={item.nombre}
+                />
+              ))}
+            </Picker>
+          </View>
+        </View>
+
+        {/* Total de gastos */}
+        <View style={styles.contenedorTotal}>
+          <Text style={styles.etiquetaTotal}>
+            {categoriaFiltro === ''
+              ? 'Total gastado'
+              : `Total en ${categoriaFiltro}`}
+          </Text>
+
+          <Text style={styles.valorTotal}>
+            $ {totalFormateado}
+          </Text>
+
+          {/* Mostrar la cantidad de gastos */}
+          <Text style={styles.cantidadGastos}>
+            Cantidad de gastos: {cantidadGastos}
+          </Text>
+        </View>
+        {/* Fin Total de gastos */}
+
+        {/* Lista de gastos, todos y filtrados */}
+        <ListaGastos
+          gastos={gastosFiltrados}
+          onEliminarGasto={manejarEliminar}
+          onEditarGasto={manejarEditar}
+        />
+      </>
+    ) : (
+      <>
+        {/* PANTALLA DEL FORMULARIO */}
+
+        <Text style={styles.titulo}>
+          {modoEdicion ? 'Editar gasto' : 'Nuevo gasto'}
+        </Text>
+
+        <Text style={styles.subtitulo}>
+          {modoEdicion
+            ? 'Modificar los datos del gasto'
+            : 'Ingresar los datos del nuevo gasto'}
+        </Text>
+
+        <FormularioGasto
+          descripcion={descripcion}
+          setDescripcion={setDescripcion}
+          monto={monto}
+          setMonto={setMonto}
+          categoria={categoria}
+          setCategoria={setCategoria}
+          onAgregar={manejarAgregar}
+          onEditar={manejarGuardarEdicion}
+          modoEdicion={modoEdicion}
+          deshabilitado={guardando}
+        />
+
         <Pressable
           style={styles.botonCancelar}
           onPress={limpiarFormulario}
           disabled={guardando}
         >
           <Text style={styles.textoCancelar}>
-            Cancelar edición
+            Cancelar y volver
           </Text>
         </Pressable>
-      )}
+      </>
+    )}
 
-      <ListaGastos
-        gastos={gastos}
-        onEliminarGasto={manejarEliminar}
-        onEditarGasto={manejarEditar}
-      />
-    </View>
-  );
+  </View>
+);
 }
 
 const styles = StyleSheet.create({
@@ -258,5 +379,70 @@ const styles = StyleSheet.create({
   textoCancelar: {
     color: '#777777',
     fontWeight: '600',
+  },
+
+  botonAgregar: {
+    backgroundColor: '#53745B',
+    paddingVertical: 15,
+    paddingHorizontal: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+
+  textoBotonAgregar: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: 'bold',
+  },
+
+  //Para mostrar el total
+  contenedorTotal: {
+    backgroundColor: '#E3EDE5',
+    padding: 20,
+    borderRadius: 12,
+    marginBottom: 20,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#C5D8CA',
+  },
+
+  etiquetaTotal: {
+    fontSize: 16,
+    color: '#53745B',
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+
+  valorTotal: {
+    fontSize: 30,
+    fontWeight: 'bold',
+    color: '#2F5138',
+  },
+
+  //FILTRO
+    contenedorFiltro: {
+    marginBottom: 15,
+  },
+
+  etiquetaFiltro: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: '#53745B',
+    marginBottom: 8,
+  },
+
+  selectorFiltro: {
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1,
+    borderColor: '#C5D8CA',
+    borderRadius: 10,
+    overflow: 'hidden',
+  },
+
+  cantidadGastos: {
+    fontSize: 13,
+    color: '#53745B',
+    marginTop: 8,
   },
 });

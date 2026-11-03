@@ -1,3 +1,6 @@
+import { Picker } from '@react-native-picker/picker';
+import { CATEGORIAS } from '../constants/categorias';
+
 
 import {
   View,
@@ -36,12 +39,24 @@ export default function FormularioGasto({
         keyboardType="decimal-pad"
       />
 
-      <TextInput
+      {/* <TextInput
         style={styles.input}
         placeholder="Categoría"
         value={categoria}
         onChangeText={setCategoria}
-      />
+      /> */}
+
+      <Picker selectedValue={categoria} onValueChange={(valor) => setCategoria(valor)} >
+        <Picker.Item label="Seleccione una categoría" value=""/>
+
+        {CATEGORIAS.map((item) => (
+          <Picker.Item
+            key={item.id}
+            label={item.nombre}
+            value={item.nombre}
+          />
+        ))}
+      </Picker>
 
       <Pressable
         style={[
